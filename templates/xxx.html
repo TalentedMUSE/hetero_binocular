@@ -1,0 +1,690 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style type="text/css">
+		body,
+		html,
+		#map_disaster {
+			  width: 100%;
+			  height: 100%;
+			  overflow: hidden;
+			  margin: 0;
+			  font-family: "微软雅黑";
+		}
+    #map_play {
+			  width: 100%;
+			  height: 100%;
+			  overflow: hidden;
+			  margin: 0;
+			  font-family: "微软雅黑";
+		}
+    #detection {
+			  width: 100%;
+			  height: 100%;
+			  overflow: hidden;
+			  margin: 0;
+			  font-family: "微软雅黑";
+		}
+    #wind_power {
+			  width: 100%;
+			  height: 100%;
+			  overflow: hidden;
+			  margin: 0;
+			  font-family: "微软雅黑";
+		}
+    #list img {
+        float: left;
+        width: 1370px;
+        height: 893px;
+    }
+    #buttons {
+        position: absolute;
+        bottom: 20px;
+        z-index: 2;
+        height: 10px;
+        width: 500px;
+    }
+    #buttons span {
+        float: left;
+        margin-right: 5px;
+        width: 10px;
+        height: 10px;
+        border: 1px solid #fff;
+        border-radius: 50%;
+        background: #333;
+        cursor: pointer;
+    }
+    #buttons .on {
+        background: orangered;
+    }
+
+    .arrow {
+        position: absolute;
+        z-index: 2;
+        display: none;
+        width: 40px;
+        height: 40px;
+        font-size: 36px;
+        font-weight: bold;
+        line-height: 39px;
+        text-align: center;
+        color: #fff;
+        background-color: RGBA(0, 0, 0, .3);
+        cursor: pointer;
+    }
+
+    .arrow:hover {
+        background-color: RGBA(0, 0, 0, .7);
+    }
+
+    #container:hover .arrow {
+        display: block;
+    }
+
+    #prev {
+        left: 20px;
+        top: 420px;
+    }
+
+    #next {
+        right: 20px;
+        top: 420px;
+    }
+
+    #close{
+        right: 20px;
+        top: 15px;
+    }
+
+	</style>
+    <!-- 上述3个meta标签*必须*放在最前面，任何其他内容都*必须*跟随其后！ -->
+    <title>Hetero Data Integration on Power Grid Surveillance</title>
+    <!-- Bootstrap -->
+    <link rel="shortcut icon" href="#" />
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/3.4.1/css/bootstrap.min.css" integrity="sha384-HSMxcRTRxnN+Bdg0JdbxYKrThecOKuH5zCYotlSAcp1+c8xmyTe9GYg1l9a69psu" crossorigin="anonymous">
+    <link href="//cdn.muicss.com/mui-0.10.3/css/mui.min.css" rel="stylesheet" type="text/css" />
+    <script src="//cdn.muicss.com/mui-0.10.3/js/mui.min.js"></script>
+    <script type="text/javascript" src="//api.map.baidu.com/api?v=2.0&ak=5gg0Ym60c5GR538Zv9IWH6ipzMBZXy6T"></script>
+	  <script src="{{url_for('static',filename='js/jquery-3.3.1.min.js')}}"></script>
+    <script src="{{url_for('static',filename='js/echarts.js')}}"></script>
+    <!--<script type="text/javascript" src="https://cdn.jsdelivr.net/npm/echarts@4.5.0/dist/echarts.min.js"></script>-->
+</head>
+  <body>
+    <div style="color:rgb(41, 157, 199);font-family: STXingkai;cursor: pointer;"><h2 onclick="history.go(0)">电网异物入侵监测系统<small>多源数据融合</small></h2></div>
+    <div style="width:15%; float:left;background-color:rgb(225, 245, 252);font-size: 18px;" id='nav'>
+        <ul class="nav nav-pills nav-stacked list-group">
+            <li role="presentation"><a href="javascript:void(0);" onclick="show_disaster(0)"><span class="glyphicon glyphicon-alert"></span>&nbsp&nbsp灾害数据</a></li>
+            <li role="presentation"><a href="javascript:void(0);" onclick="show_disaster(1)"><span class="glyphicon glyphicon-camera"></span>&nbsp&nbsp游玩数据</a></li>
+            <li role="presentation"><a href="javascript:void(0);" onclick="show_disaster(2)"><span class="glyphicon glyphicon glyphicon-stats"></span>&nbsp&nbsp统计图表</a></li>
+            <li role="presentation"><a href="javascript:void(0);" onclick="show_disaster(3)"><span class="glyphicon glyphicon-search"></span>&nbsp&nbsp漂浮物检测</a></li>
+            <li role="presentation"><a href="javascript:void(0);" onclick="show_disaster(4)"><span class="glyphicon glyphicon-flag"></span>&nbsp&nbsp风力级别估计</a></li>
+          </ul>
+    </div>
+    <div style="width:85%; float:left;display: block;" id='map_disaster'></div>
+    <div style="width:85%; float:left;display: none;" id='map_play'></div>
+    <div style="width:85%; float:left;display: none;" id='statistics'>
+        <div id="statistics1" style="width: 740px;height: 800px;float: left;"></div>
+        <div style="float:left">
+        <div id="statistics2" style="width: 600px;height: 310px;"></div>
+        <div id="statistics3" style="width: 600px;height: 520px;"></div>
+        </div>
+    </div>
+    <div style="width:85%; float:left;display: none;position:relative" id='detection'>
+        
+    </div>
+    <div style="width:85%; float:left;display: none;position: relative" id='wind_power'></div>
+    <style type="text/css">
+        .list-group {
+            padding-left: 0;
+            margin-bottom: 0px;
+        }
+    </style>
+    <!-- jQuery (Bootstrap 的所有 JavaScript 插件都依赖 jQuery，所以必须放在前边) -->
+    <script src="https://cdn.jsdelivr.net/npm/jquery@1.12.4/dist/jquery.min.js" integrity="sha384-nvAa0+6Qg9clwYCGGPpDQLVpLNn0fRaROjHqs13t4Ggj3Ez50XnGQqc/r8MhnRDZ" crossorigin="anonymous"></script>
+    <!-- 加载 Bootstrap 的所有 JavaScript 插件。你也可以根据需要只加载单个插件。 -->
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/3.4.1/js/bootstrap.min.js" integrity="sha384-aJ21OjlMXNL5UyIl/XNwTMqvzeRMZH2w8c5cRVpzpU8Y5bApTppSuUkhZXN0VxHd" crossorigin="anonymous"></script>
+    <script>
+        function show_disaster(num)
+        {
+            var id_array = ['map_disaster', 'map_play', 'statistics', 'detection', 'wind_power'];
+            for (var i = 0; i < id_array.length; i++)
+            {
+                var div_hide = document.getElementById(id_array[i]);
+                div_hide.style.display = 'none';
+            }
+            var div_show = document.getElementById(id_array[num]);
+            div_show.style.display = 'block';
+        }
+    </script>
+</body>
+</html>
+<script type="text/javascript">
+    // 百度地图API功能
+    var res = {{tag | tojson}};
+    var map = new BMap.Map("map_disaster");
+    var initial = new BMap.Point(108.879038, 34.478058);
+    var opts = {
+        width: 240,
+        height: 150,
+        title: ""
+    };
+    map.centerAndZoom(initial, 8);
+    map.enableScrollWheelZoom();   //启用滚轮放大缩小，默认禁用
+    map.enableContinuousZoom();    //启用地图惯性拖拽，默认禁用
+    map.addControl(new BMap.NavigationControl());
+    map.addControl(new BMap.MapTypeControl());   //添加地图类型控件
+    
+    function addMarker(point, author, time, content) {
+		var marker = new BMap.Marker(point);
+		//map.addOverlay(marker);
+		marker.disableMassClear();
+        var text = `<div>用户名称: ` + author + `</div>` + `<div>发布时间: ` + time + `</div>` + `<div>微博正文: ` + content + `</div>`;
+        var infoWindow = new BMap.InfoWindow(text, opts);
+		marker.addEventListener("click", function(){
+            marker.openInfoWindow(infoWindow, point);
+        });
+        map.addOverlay(marker);
+    }
+    
+    for (var i = 0; i < res[0].length; i++)
+    {
+        var point = new BMap.Point(res[0][i][7], res[0][i][8]);
+        var author = res[0][i][1];
+        var time = res[0][i][3];
+        var content = res[0][i][4] + "...";
+        addMarker(point, author, time, content);
+    }
+</script>
+
+
+<script type="text/javascript">
+    var map = new BMap.Map("map_play");
+    var res = {{tag | tojson}};
+    var opts = {
+        width: 240,
+        height: 150,
+        title: ""
+    };
+    var initial1 = new BMap.Point(103.279038, 37.678058);
+    map.centerAndZoom(initial1, 8);
+    map.enableScrollWheelZoom();   //启用滚轮放大缩小，默认禁用
+    map.enableContinuousZoom();    //启用地图惯性拖拽，默认禁用
+    map.addControl(new BMap.NavigationControl());
+    map.addControl(new BMap.MapTypeControl());   //添加地图类型控件
+    var myIcon = new BMap.Icon("http://api.map.baidu.com/img/markers.png", new BMap.Size(23, 25), {
+                        offset: new BMap.Size(10, 25), // 指定定位位置
+                        imageOffset: new BMap.Size(0, 0 - 10 * 25) // 设置图片偏移
+                    });
+    function addMarker(point, author, time, content, link) {
+		var marker = new BMap.Marker(point, {icon:myIcon});
+		//map.addOverlay(marker);
+		marker.disableMassClear();
+        var text = `<div>用户名称: ` + author + `</div>` + `<div>发布时间: ` + time + `</div>` + `<div>微博正文: ` + content + `</div>`;
+        //if (link.indexOf('video') != -1)
+        //{
+            //text += (`<div style="margin-top:20px"><video width="590" height="320" autoplay="autoplay" controls="controls"><source src=` + link + `></video></div>`);
+        //}
+        //else if (link != '')
+        //{
+            //text += (`<div style="margin-top:20px"><img src=` + link +` width=590 height=320></div>`);
+            //text += (`<div>` + link + `</div>`);
+        //}
+        //else
+        //{
+            //text += (`<div style="margin-top:20px"><img src=` + "https://gss0.baidu.com/-4o3dSag_xI4khGko9WTAnF6hhy/zhidao/pic/item/29381f30e924b8990d2221b365061d950a7bf61b.jpg" +` width=590 height=320></div>`);
+        //}
+        var infoWindow = new BMap.InfoWindow(text, opts);
+		    marker.addEventListener("click", function(){
+            marker.openInfoWindow(infoWindow, point);
+        });
+        map.addOverlay(marker);
+    }
+    for (var i = 0; i < res[1].length; i++)
+    {
+        var point = new BMap.Point(res[1][i][8], res[1][i][9]);
+        var author = res[1][i][1];
+        var time = res[1][i][3];
+        var content = res[1][i][4] + "...";
+        var link = res[1][i][6];
+        addMarker(point, author, time, content, link);
+    }
+</script>
+
+<script type="text/javascript">
+    // 基于准备好的dom，初始化echarts实例
+    var res = {{tag | tojson}};
+    var bar_data = new Array();
+    var myChart = echarts.init(document.getElementById('statistics1'));
+    // 指定图表的配置项和数据
+    var cities = ['西安', '宝鸡', '咸阳', '渭南', '铜川', '汉中', '商洛', '榆林', '安康', '延安']
+    for (var i = 0; i < cities.length; i++)
+    {
+        bar_data[i] = 0;
+    }
+    for (var j = 0; j < res[0].length; j++)
+    {
+        bar_data[cities.indexOf(res[0][j][6])] += 1;
+    }
+    for (var k = 0; k < res[1].length; k++)
+    {
+        bar_data[cities.indexOf(res[1][k][7])] += 1;
+    }
+    console.log(bar_data)
+    var option = {
+      title: {
+        text: '陕西省各城市的防控压力'
+      },
+      tooltip: {},
+      xAxis: {
+        data: cities
+      },
+      yAxis: {},
+      series: [
+        {
+          type: 'bar',
+          //data: [5, 20, 36, 10, 10, 20]
+          data:bar_data
+        }
+      ]
+    };
+    // 使用刚指定的配置项和数据显示图表。
+    myChart.setOption(option);
+</script>
+
+<script type="text/javascript">
+var chartDom = document.getElementById('statistics2');
+var myChart = echarts.init(chartDom);
+var option;
+
+option = {
+  title: {
+    text: '陕西省各类灾害频率图'
+  },
+  tooltip: {
+    trigger: 'item'
+  },
+  legend: {
+    top: '5%',
+    left: 'left'
+  },
+  series: [
+    {
+      name: '频率',
+      type: 'pie',
+      radius: ['40%', '70%'],
+      avoidLabelOverlap: false,
+      itemStyle: {
+        borderRadius: 10,
+        borderColor: '#fff',
+        borderWidth: 2
+      },
+      label: {
+        show: false,
+        position: 'center'
+      },
+      emphasis: {
+        label: {
+          show: true,
+          fontSize: '30',
+          fontWeight: 'bold'
+        }
+      },
+      labelLine: {
+        show: false
+      },
+      data: [
+        { value: 0.20, name: '火灾' },
+        { value: 0.24, name: '暴雨' },
+        { value: 0.08, name: '电力事故' },
+        { value: 0.41, name: '塌方' },
+        { value: 0.07, name: '其它' }
+      ]
+    }
+  ]
+};
+option && myChart.setOption(option);
+</script>
+
+<script type="text/javascript">
+var chartDom = document.getElementById('statistics3');
+var myChart = echarts.init(chartDom);
+var option;
+option = {
+  title: {
+    text: '陕西省主要景点情况雷达图'
+  },
+  legend: {
+    data: ["", "", '兵马俑', '华山', '大唐不夜城', '古城墙', '华清宫'],
+    left: 'left'
+  },
+  radar: {
+    // shape: 'circle',
+    indicator: [
+      { name: '游客数量', max: 200 },
+      { name: '游客增长率', max: 50 },
+      { name: '事故发生率', max: 50 },
+      { name: '监控数量', max: 100 }
+    ]
+  },
+  series: [
+    {
+      name: '雷达图',
+      type: 'radar',
+      data: [
+        {
+          value: [185, 10, 3, 60],
+          name: '兵马俑'
+        },
+        {
+          value: [150, 15, 30, 20],
+          name: '华山'
+        },
+        {
+          value: [200, 30, 25, 40],
+          name: '大唐不夜城'
+        },
+        {
+          value: [130, 5, 10, 13],
+          name: '古城墙'
+        },
+        {
+          value: [138, 8, 5, 50],
+          name: '华清宫'
+        }
+      ]
+    }
+  ]
+};
+option && myChart.setOption(option);
+</script>
+
+<script type="text/javascript">
+  // 百度地图API功能
+  var res = {{tag | tojson}};
+  var count_span = 0;
+  var map = new BMap.Map("detection");
+  var initial = new BMap.Point(103.279038, 37.678058);
+  var xpos = new Array(108.95, 107.15, 108.72, 109.5, 109.11, 108.04, 109.939776, 109.741193, 109.02, 109.489727);
+  var ypos = new Array(34.27, 34.38, 34.36, 34.52, 35.09, 33.07, 33.868319, 38.290162, 32.68, 36.585455);
+  map.centerAndZoom(initial, 8);
+  map.enableScrollWheelZoom();   //启用滚轮放大缩小，默认禁用
+  map.enableContinuousZoom();    //启用地图惯性拖拽，默认禁用
+  map.addControl(new BMap.NavigationControl());
+  map.addControl(new BMap.MapTypeControl());   //添加地图类型控件
+
+  var map2 = new BMap.Map("wind_power");
+  map2.centerAndZoom(initial, 8);
+  map2.enableScrollWheelZoom();   //启用滚轮放大缩小，默认禁用
+  map2.enableContinuousZoom();    //启用地图惯性拖拽，默认禁用
+  map2.addControl(new BMap.NavigationControl());
+  map2.addControl(new BMap.MapTypeControl());   //添加地图类型控件
+  
+  function addMarker(point, city, total, high_res, binocular, map, indicator) {
+      var marker = new BMap.Marker(point);
+      //map.addOverlay(marker);
+      marker.disableMassClear();
+      var opts = {
+          width: 240,
+          height: 150,
+          title: city
+      };
+      var text = `<div>摄像机总数: ` + total + `</div>` + `<div>高清摄像机数量: ` + high_res + `</div>` + `<div>双目摄像机数量: ` + binocular + `</div>`;
+      if (indicator == 3)
+      {
+          text += `<div>漂浮物种类: 气球、塑料袋、鸟巢</div>`;
+      }
+      if (indicator == 4)
+      {
+          text += `<div>风力级别: 1-5; 风力方向:8个方向</div>`;
+      }
+      var infoWindow = new BMap.InfoWindow(text, opts);
+          marker.addEventListener("click", function(){
+          marker.openInfoWindow(infoWindow, point);
+      });
+      marker.addEventListener("rightclick", function(){
+          activateModal(city, indicator);
+      })
+      map.addOverlay(marker);
+  }
+  
+  for (var i = 0; i < res[2].length; i++)
+  {
+      var point = new BMap.Point(xpos[i], ypos[i]);
+      var city = res[2][i][1];
+      var total = res[2][i][2];
+      var high_res = res[2][i][3];
+      var binocular = res[2][i][4];
+      addMarker(point, city, total, high_res, binocular, map, 3);
+      addMarker(point, city, total, high_res, binocular, map2, 4);
+  }
+  function activateModal(city, indicator) {
+    // initialize modal element
+      var modalEl = document.createElement('div');
+      modalEl.id = 'container';
+      modalEl.style.width = '1370px';
+      modalEl.style.float = 'right';
+      modalEl.style.height = '894px';
+      modalEl.style.marginTop = '62px';
+      modalEl.style.backgroundColor = '#C0C0C0';
+      modalEl.style.position = 'relative';
+      modalEl.style.overflow = 'hidden';
+      pic_width = parseInt(modalEl.style.width.replace('px', ''));
+      pic_height = parseInt(modalEl.style.height.replace('px', ''));
+
+      var list = document.createElement('div');
+      var list_length = res[indicator][city].length;
+      list.id = 'list';
+      list.style.left = (-1 * pic_width).toString() + 'px';
+      list.style.position = 'absolute';
+      list.style.zIndex = 1;
+      list.style.width = ((2 + list_length) * pic_width).toString() + 'px';
+      list.style.height = pic_height.toString() + 'px';
+      var im_head = document.createElement('img');
+      if (indicator == 3)
+      {
+          im_head.src = res[indicator][city][list_length - 1];
+      }
+      else
+      {
+          im_head.src = res[indicator][city][list_length - 1][0];
+      }
+      im_head.alt = '1';
+      list.appendChild(im_head);
+      for (var i = 0; i < list_length; i++)
+      {
+          var im = document.createElement('img');
+          if (indicator == 3)
+          {
+              im.src = res[indicator][city][i];
+              im.alt = (i + 1).toString();
+          }
+          else
+          {
+              im.src = res[indicator][city][i][0];
+              im.alt = res[indicator][city][i][1] + res[indicator][city][i][2];
+              load_txt(im, im.alt);
+          }
+          //im.alt = (i + 1).toString();
+          list.appendChild(im);
+      }
+
+      var im_rear = document.createElement('img');
+      if(indicator == 3)
+      {
+          im_rear.src = res[indicator][city][0];
+      }
+      else
+      {
+          im_rear.src = res[indicator][city][0][0];         
+      }
+      im_rear.alt = list_length.toString();
+      list.appendChild(im_rear);
+
+      var buttons = document.createElement('div');
+      buttons.id = 'buttons';
+      if (list_length >= 12)
+      {
+          buttons.style.left = (1000 - 30 * list_length).toString() + 'px';
+      }
+      else
+          buttons.style.left = (1000 - 45 * list_length).toString() + 'px';
+      for (var j = 0; j < list_length; j++)
+      {
+          var span = document.createElement('span');
+          span.index = (j + 1).toString();
+          if (j == 0)
+          {
+              span.className = 'on';
+          }
+          buttons.appendChild(span);
+      }
+      
+      var prev = document.createElement('a');
+      prev.href = 'javascript:;';
+      prev.id = 'prev';
+      prev.className = 'arrow';
+      prev.innerHTML = '&lt';
+
+      var next = document.createElement('a');
+      next.href = 'javascript:;';
+      next.id = 'next';
+      next.className = 'arrow';
+      next.innerHTML = '&gt';
+
+      var close = document.createElement('a');
+      close.href = 'javascript:;';
+      close.id = 'close';
+      close.className = 'arrow';
+      close.innerHTML = 'X';
+      close.addEventListener("click", function(){
+          document.getElementById('container').remove();
+          mui.overlay('off');
+      })
+
+      modalEl.appendChild(list);
+      modalEl.appendChild(buttons);
+      modalEl.appendChild(prev);
+      modalEl.appendChild(next);
+      modalEl.appendChild(close);
+
+    // show modal
+      mui.overlay('on', modalEl);
+    // 轮播
+      flash(pic_width, list_length);
+  }
+  function load_txt(im, txt)
+  {
+      im.addEventListener("click", function(){
+          //alert(txt);
+          count_span += 1;
+          console.log(count_span);
+          var outside = document.getElementById('container');
+          var new_span = document.createElement('span');
+          new_span.className = 'windy';
+          new_span.style.zIndex = 9999999;
+          new_span.style.top = '100px';
+          new_span.style.left = '1000px';
+          new_span.style.position = 'absolute';
+          new_span.style.color = '#FF6651';
+          new_span.innerHTML = `<h1>` + txt + `</h1>`;
+          if (count_span % 2 != 0)
+          {
+              outside.appendChild(new_span);
+          }
+          else
+          {
+              outside.removeChild(outside.childNodes[outside.childNodes.length - 1]);
+              if (count_span == 32)
+              {
+                  count_span = 0;
+              }
+          }
+      })
+  }
+
+  function flash(pic_width, list_length){
+      var container = document.getElementById('container');
+      var list = document.getElementById('list');
+      var buttons = document.getElementById('buttons').getElementsByTagName('span');
+      var prev = document.getElementById('prev');
+      var next = document.getElementById('next');
+      var index = 1;
+      var timer;
+
+      function animate(offset) {
+          //获取的是style.left，是相对左边获取距离，所以第一张图后style.left都为负值，
+          //且style.left获取的是字符串，需要用parseInt()取整转化为数字。
+          var newLeft = parseInt(list.style.left) + offset;
+          list.style.left = newLeft + 'px';
+          //无限滚动判断
+          if (newLeft > -pic_width) {
+              list.style.left = (-pic_width * list_length) + 'px';
+          }
+          if (newLeft < (-pic_width * list_length)) {
+              list.style.left = -pic_width + 'px';
+          }
+      }
+
+      function play() {
+          //重复执行的定时器
+          timer = setInterval(function () {
+              next.onclick();
+          }, 2000)
+      }
+      function stop() {
+          clearInterval(timer);
+      }
+
+      function buttonsShow() {
+          //将之前的小圆点的样式清除
+          for (var i = 0; i < buttons.length; i++) {
+              if (buttons[i].className == "on") {
+                  buttons[i].className = "";
+              }
+          }
+          //数组从0开始，故index需要-1
+          buttons[index - 1].className = "on";
+      }
+
+      prev.onclick = function () {
+          index -= 1;
+          if (index < 1) {
+              index = list_length
+          }
+          buttonsShow();
+          animate(pic_width);
+      };
+
+      next.onclick = function () {
+          //由于上边定时器的作用，index会一直递增下去，我们只有5个小圆点，所以需要做出判断
+          index += 1;
+          if (index > list_length) {
+              index = 1
+          }
+          animate(-pic_width);
+          buttonsShow();
+      };
+
+      for (var i = 0; i < buttons.length; i++) {
+          (function (i) {
+              buttons[i].onclick = function () {
+                  var clickIndex = parseInt(this.index);
+                  var offset = pic_width * (index - clickIndex); //这个index是当前图片停留时的index
+                  animate(offset);
+                  index = clickIndex; //存放鼠标点击后的位置，用于小圆点的正常显示
+                  buttonsShow();
+              }
+          })(i)
+      }
+
+      container.onmouseover = stop;
+      container.onmouseout = play;
+      play();
+  }
+
+</script>
+
+  
